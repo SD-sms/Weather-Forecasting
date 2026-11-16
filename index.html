@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather and Carbon Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <!-- Weather App -->
+    <div class="weather-section">
+        <div class="card">
+            <div class="search">
+                <input type="text" placeholder="Enter city name" spellcheck="false">
+                <button><img src="images/search.jpg"></button>
+            </div>
+            <div class="error">
+                <p>Invalid city name</p>
+            </div>
+            <div class="weather">
+                <img src="images/clear.jpg" class="weather-icon">
+                <h1 class="temp"></h1>
+                <h2 class="city"></h2>
+                <div class="details">
+                    <div class="col">
+                        <img src="images/humidity.png">
+                        <div>
+                            <p class="humidity">50%</p>
+                            <p>Humidity</p>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <img src="images/wind.jpg">
+                        <div>
+                            <p class="wind">15 Km/h</p>
+                            <p>Wind Speed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="forecast">
+            <h3>Tomorrow's Weather:</h3>
+            <p class="forecast-temp"></p>
+            <p class="forecast-description"></p>
+        </div>
+    </div>
+
+    <!-- Carbon Footprint Calculator -->
+    <div class="carbon-section">
+        <div class="carbon-card">
+            <h2>Carbon Footprint Calculator</h2>
+            <label for="electricity">Electricity Usage (kWh):</label>
+            <input type="number" id="electricity" placeholder="Enter kWh">
+            <label for="fuel">Fuel Consumption (liters):</label>
+            <input type="number" id="fuel" placeholder="Enter liters">
+            <label for="distance">Travel Distance (km):</label>
+            <input type="number" id="distance" placeholder="Enter km">
+            <button id="calculate-btn">Calculate Carbon Footprint</button>
+            <p class="result"></p>
+            <div class="recommendations">
+                <h3>Steps to Reduce Carbon Footprint:</h3>
+                <ul class="steps"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apikey = "72488a1a4e498d058b440a6391dd5037";
+    const weatherApiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&";
+    const forecastApiUrl = "https://api.openweathermap.org/data/2.5/forecast?units=metric&";
+
+    const searchbox = document.querySelector(".search input");
+    const searchbtn = document.querySelector(".search button");
+    const weathericon = document.querySelector(".weather-icon");
+
+    async function checkWeather(city) {
+        const response = await fetch(weatherApiUrl + `q=${city}&appid=${apikey}`);
+        if (response.status == 404) {
+            document.querySelector(".error").style.display = "block";
+            document.querySelector(".weather").style.display = "none";
+        } else {
+            const data = await response.json();
+            document.querySelector(".city").innerHTML = data.name;
+            document.querySelector(".temp").innerHTML = data.main.temp + "°C";
+            document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
+            document.querySelector(".wind").innerHTML = data.wind.speed + "km/h";
+
+            if (data.weather[0].main == "Clouds") {
+                weathericon.src = "images/clouds.png";
+            } else if (data.weather[0].main == "Clear") {
+                weathericon.src = "images/clear.jpg";
+            } else if (data.weather[0].main == "Rain") {
+                weathericon.src = "images/rain.jpg";
+            } else if (data.weather[0].main == "Drizzle") {
+                weathericon.src = "images/drizzle.jpg";
+            } else if (data.weather[0].main == "Mist") {
+                weathericon.src = "images/mist.png";
+            }
+
+            document.querySelector(".weather").style.display = "block";
+            document.querySelector(".error").style.display = "none";
+
+            // Fetch forecast data
+            getForecast(city);
+        }
+    }
+
+    async function getForecast(city) {
+        const response = await fetch(forecastApiUrl + `q=${city}&appid=${apikey}`);
+        if (response.status == 200) {
+            const data = await response.json();
+            const tomorrow = data.list[8]; // 24 hours ahead (3-hour intervals)
+
+            document.querySelector(".forecast-temp").innerHTML = "Temperature:" + `${tomorrow.main.temp}` + "°C";
+            document.querySelector(".forecast-description").innerHTML = "Condition:" + `${tomorrow.weather[0].description}`;
+        }
+    }
+
+    searchbtn.addEventListener("click", () => {
+        checkWeather(searchbox.value);
+    });
+
+    // Carbon Footprint Calculator
+    const calculateBtn = document.getElementById("calculate-btn");
+    calculateBtn.addEventListener("click", () => {
+        const electricity = document.getElementById("electricity").value || 0;
+        const fuel = document.getElementById("fuel").value || 0;
+        const distance = document.getElementById("distance").value || 0;
+
+        const electricityEmissions = electricity * 0.527; // kg CO2 per kWh
+        const fuelEmissions = fuel * 2.31; // kg CO2 per liter
+        const distanceEmissions = distance * 0.12; // kg CO2 per km
+
+        const totalEmissions = electricityEmissions + fuelEmissions + distanceEmissions;
+
+        document.querySelector(".result").innerHTML = "Total Carbon Footprint:" + `${totalEmissions.toFixed(2)}` + "kg CO2";
+
+        // Suggestions to reduce footprint
+        const steps = document.querySelector(".steps");
+        steps.innerHTML = "";
+
+        if (totalEmissions > 1000) {
+            steps.innerHTML += "<li>Switch to renewable energy sources for electricity.</li>";
+            steps.innerHTML += "<li>Use public transport or carpool to reduce fuel consumption.</li>";
+            steps.innerHTML += "<li>Minimize air travel and opt for virtual meetings.</li>";
+        } else if (totalEmissions > 500) {
+            steps.innerHTML += "<li>Turn off unused electrical devices to save energy.</li>";
+            steps.innerHTML += "<li>Use energy-efficient appliances and LED bulbs.</li>";
+            steps.innerHTML += "<li>Reduce car usage and opt for cycling or walking for short distances.</li>";
+        } else {
+            steps.innerHTML += "<li>Continue your efforts to minimize emissions.</li>";
+            steps.innerHTML += "<li>Plant more trees and support green initiatives.</li>";
+        }
+    });
+</script>
+</body>
+</html>
